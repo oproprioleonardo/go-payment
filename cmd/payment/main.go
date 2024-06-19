@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"github.com/imersao17/payment/internal/entity"
-	"github.com/imersao17/payment/pkg/rabbitmq"
+	"github.com/ia/lab/payment/internal/entity"
+	"github.com/ia/lab/payment/pkg/pagarme"
+	"github.com/ia/lab/payment/pkg/rabbitmq"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"golang.org/x/exp/slog"
 )
@@ -25,7 +26,7 @@ func main() {
 
 	msgs := make(chan amqp.Delivery)
 	go func() {
-		err := rabbitmq.Consume(ch, msgs, "orders")
+		err := rabbitmq.Consume(ch, msgs, "lab_ia_pagamentos")
 		if err != nil {
 			panic(err)
 		}
@@ -39,10 +40,21 @@ func main() {
 			break
 		}
 
-		response, err := orderRequest.Process()
+		response, err := pagarme.ProcessOrder(ctx, &orderRequest)
+
 		if err != nil {
 			slog.Error(err.Error())
 			break
+		}
+
+		if response.Status == "failed" {
+			if err := msg.Nack(false, false); err != nil {
+				slog.Error(err.Error())
+				break
+			}
+
+			slog.Info("Order " + orderRequest.OrderID + " failed")
+			continue
 		}
 
 		responseJSON, err := json.Marshal(response)

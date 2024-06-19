@@ -6,7 +6,7 @@ import (
 )
 
 func OpenChannel() (*amqp.Channel, error) {
-	conn, err := amqp.Dial("amqp://admin:admin@localhost:5672/")
+	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
 		panic(err)
 	}
@@ -18,7 +18,7 @@ func OpenChannel() (*amqp.Channel, error) {
 }
 
 func Consume(ch *amqp.Channel, out chan amqp.Delivery, queue string) error {
-	msgs, err := ch.Consume(queue, "go-payment", false, false, false, false, nil)
+	msgs, err := ch.Consume(queue, "lab-ia-order-consumer", false, false, false, false, nil)
 	if err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func Publish(ctx context.Context, ch *amqp.Channel, body, exName string) error {
 	err := ch.PublishWithContext(
 		ctx,
 		exName,
-		"PaymentDone",
+		"OrderProcessed",
 		false,
 		false,
 		amqp.Publishing{
